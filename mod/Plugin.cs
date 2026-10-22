@@ -17,7 +17,7 @@ namespace RouteSuggestPlus;
 [ModInitializer(nameof(Initialize))]
 public static class Plugin
 {
-    public const string Version = "0.1.0";
+    public const string Version = "0.1.1";
     public static RouteController? Controller { get; private set; }
 
     public static void Initialize()

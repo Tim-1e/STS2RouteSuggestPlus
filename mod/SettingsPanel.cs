@@ -165,8 +165,8 @@ public partial class SettingsPanel : Control
 
         c.AddChild(MakeSection("精修考虑"));
         Toggle(c, "商店看金币", "金币 100 以下商店≈无收益，300 满；删卡越贵商店越不值。", () => _settings.Plan.ShopModule, v => _settings.Plan.ShopModule = v);
-        Toggle(c, "药水换精英", "约 1 瓶好药或 2 瓶普通药抵 1 只精英；药水栏满时掉药不再加分。", () => _settings.Plan.PotionModule, v => _settings.Plan.PotionModule = v);
-        Toggle(c, "分层精英", "精英收益 第一层 ×1.3 / 第二层 ×1.0 / 第三层 ×0.8。", () => _settings.Plan.ActModule, v => _settings.Plan.ActModule = v);
+        Toggle(c, "药水换精英", "前两层约 1 瓶好药或 2 瓶普通药抵 1 只精英；第三层留药打 Boss，不折算精英收益或减伤。满栏掉药不再加分。", () => _settings.Plan.PotionModule, v => _settings.Plan.PotionModule = v);
+        Toggle(c, "分层收益", "精英收益 第一层 ×1.3 / 第二层 ×1.0 / 第三层 ×0.8；第三层每个火堆额外 +1。", () => _settings.Plan.ActModule, v => _settings.Plan.ActModule = v);
         Toggle(c, "血量安全线", "按 1/2/3 层绝对血量 10/20/30 设软安全线，少血避战、多血迎战。", () => _settings.Plan.HpModule, v => _settings.Plan.HpModule = v);
         Toggle(c, "近期战力", "最近 3 场受伤与预期之比（最后一场权重最高）修正预计掉血。", () => _settings.Plan.StrengthModule, v => _settings.Plan.StrengthModule = v);
         Toggle(c, "飞鞋规划", "有飞鞋时，精修路线可飞到下一行任意房间（金色弧线）；本层飞几次在地图上的飞鞋小条里选（默认自动）。", () => _settings.Plan.FlightModule, v => _settings.Plan.FlightModule = v);

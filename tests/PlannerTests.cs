@@ -61,6 +61,25 @@ public static class PlannerTests
         float a3 = Planner.Evaluate(P(E), Ctx(c => { c.ActIndex = 2; c.Hp = 80; }), p).Score;
         Check("elite worth more in act 1 than act 3", a1 > a3, $"a1 {a1:0.00} a3 {a3:0.00}");
 
+        var heldThird = Ctx(c => { c.ActIndex = 2; c.Potions = new() { 1f, 1f, 1f }; c.PotionChance = -1f; });
+        var thirdWith = Planner.Evaluate(P(E, E), heldThird, p);
+        var thirdWithout = Planner.Evaluate(P(E, E), Ctx(c => { c.ActIndex = 2; c.PotionChance = -1f; }), p);
+        Check("act 3 potions give no elite score or damage reduction",
+              Math.Abs(thirdWith.Score - thirdWithout.Score) < 1e-4f && Math.Abs(thirdWith.EndHp - thirdWithout.EndHp) < 1e-4f);
+        heldThird.PotionChance = 1f;
+        Check("act 3 elites keep the full belt reserved for the boss",
+              Planner.Evaluate(P(E, M, E), heldThird, p).PotionsGained == 0f);
+        var secondWith = Planner.Evaluate(P(E), Ctx(c => { c.ActIndex = 1; c.Potions = new() { 1f }; c.PotionChance = -1f; }), p);
+        var secondWithout = Planner.Evaluate(P(E), Ctx(c => { c.ActIndex = 1; c.PotionChance = -1f; }), p);
+        Check("act 2 still spends potions on elites", secondWith.Score > secondWithout.Score && secondWith.EndHp > secondWithout.EndHp);
+        Check("rest base scores are 4 / 4 / 5 across acts",
+              Math.Abs(Score(P(R), Ctx(), p) - 4f) < 1e-4f
+              && Math.Abs(Score(P(R), Ctx(c => c.ActIndex = 1), p) - 4f) < 1e-4f
+              && Math.Abs(Score(P(R), Ctx(c => c.ActIndex = 2), p) - 5f) < 1e-4f);
+        Check("act 3 rest bonus stacks with relics and follows the act toggle",
+              Math.Abs(Score(P(R), Ctx(c => { c.ActIndex = 2; c.RestBonus = 3; }), p) - 8f) < 1e-4f
+              && Math.Abs(Score(P(R), Ctx(c => c.ActIndex = 2), new PlanParams { ActModule = false }) - 4f) < 1e-4f);
+
         // HP: absolute safety lines 10/20/30
         float hiHp = Score(elitePath, Ctx(c => c.Hp = 70), p) - Score(safePath, Ctx(c => c.Hp = 70), p);
         float loHp = Score(elitePath, Ctx(c => c.Hp = 22), p) - Score(safePath, Ctx(c => c.Hp = 22), p);

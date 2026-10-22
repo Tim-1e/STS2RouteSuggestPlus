@@ -322,7 +322,7 @@ public static class Planner
                 s.Score += p.Weight(NodeKind.Treasure);
                 break;
             case NodeKind.RestSite:
-                s.Score += p.Weight(NodeKind.RestSite) + ctx.RestBonus;
+                s.Score += p.Weight(NodeKind.RestSite) + ctx.RestBonus + (p.ActModule && ctx.ActIndex >= 2 ? 1f : 0f);
                 // Assume the player sleeps. Healing is not scored, so arriving hurt is never rewarded.
                 if (p.HpModule && s.Hp < ctx.MaxHp) { s.Hp = Math.Min(ctx.MaxHp, s.Hp + ctx.RestHeal); s.Heals++; }
                 break;
@@ -368,7 +368,8 @@ public static class Planner
             {
                 int left = n;
                 float branchLoss = baseLoss;
-                if (elite && n > 0)
+                // In act 3, keep potions for the boss instead of spending them on elites.
+                if (elite && n > 0 && ctx.ActIndex < 2)
                 {
                     float used = Math.Min(n * avg, p.PotionPerElite);
                     float share = used / p.PotionPerElite;

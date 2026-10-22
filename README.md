@@ -22,11 +22,17 @@
 
 ## 实机截图
 
-![飞鞋次数选择与路线](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/v0.1.0/docs/screenshots/01-flight-routes.jpg)
+![飞鞋次数选择与路线](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/main/docs/screenshots/01-flight-routes.jpg)
 
-![设置面板](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/v0.1.0/docs/screenshots/02-settings.jpg)
+![设置面板](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/main/docs/screenshots/02-settings.jpg)
 
-[固定房间](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/v0.1.0/docs/screenshots/03-pinned-rooms.jpg) · [游戏内模组详情与封面](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/v0.1.0/docs/screenshots/04-mod-details.jpg)
+![固定房间](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/main/docs/screenshots/03-pinned-rooms.jpg)
+
+![游戏内模组详情与封面](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/main/docs/screenshots/04-mod-details.jpg)
+
+![路线评估与参数](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/main/docs/screenshots/05-route-evaluation.jpg)
+
+![显示设置与当前评估](https://raw.githubusercontent.com/Tim-1e/STS2RouteSuggestPlus/main/docs/screenshots/06-display-settings.png)
 
 ## 精修推荐怎么算
 

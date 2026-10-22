@@ -1,0 +1,315 @@
+# RouteSuggest - Slay the Spire 2 Mod
+
+English | [简体中文](README_zh.md)
+
+![](screenshot.png)
+
+A mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in gold/red on the map screen.
+
+**Supported game versions:** v0.107.1
+
+## Features
+
+- **Dual path suggestions**: Shows two optimal routes - a safe path and an aggressive path
+- **Visual highlighting**:
+  - **Gold**: Safe path (minimizes risk)
+  - **Red**: Aggressive path (prioritizes combat for rewards)
+- **Smart scoring**: Different weights for safe vs aggressive playstyles
+- **Expert scoring**: Optional adjacency bonuses that reward positional patterns (e.g., Rest before Elite)
+- **GUI Configuration**: Full in-game configuration via [ModConfig](https://github.com/xhyrzldf/ModConfig-STS2) (optional)
+- **Manual Configuration**: Direct JSON configuration for advanced users
+
+## Installation via Steam Workshop
+
+Subscribe: [Route Suggest](https://steamcommunity.com/sharedfiles/filedetails/?id=3747557049)
+
+## Manual Installation
+
+1. Download the latest release from [GitHub releases](https://github.com/jiegec/STS2RouteSuggest/releases) or [Nexus mods](https://www.nexusmods.com/slaythespire2/mods/54)
+2. Extract the mod files to your Slay the Spire 2 mods folder (`mods` folder should reside in the same folder as the game executable):
+   - **Windows**: `C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2\mods\`
+   - **macOS**: `~/Library/Application\ Support/Steam/steamapps/common/Slay\ the\ Spire\ 2/SlayTheSpire2.app/Contents/MacOS/mods/`
+   - **Linux**: `~/.steam/steam/steamapps/common/Slay\ the\ Spire\ 2/mods`
+3. Launch Slay the Spire 2 - the mod will load automatically
+
+## Building from Source
+
+### Prerequisites
+
+- .NET 9.0 SDK or later
+- Godot 4.5.1 with Mono support
+- Slay the Spire 2 (for the sts2.dll reference)
+
+### Build Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/jiegec/STS2RouteSuggest
+cd RouteSuggest
+
+# Build the mod
+./build.sh
+
+# Install the mod
+./install.sh
+```
+
+## How It Works
+
+The mod calculates two optimal paths using different scoring systems:
+
+### Safe Path (Gold)
+
+Minimizes encounters and prioritizes safety:
+
+| Room Type     | Score | Reason                         |
+|---------------|-------|--------------------------------|
+| **Rest Site** | +1    | Heal and upgrade cards         |
+| **Treasure**  | +1    | Free relic                     |
+| **Shop**      | +1    | Buy cards, relics, and potions |
+| **Monster**   | -1    | Avoid combat                   |
+| **Elite**     | -3    | Avoid hard encounters          |
+| **Boss**      | 0     | Final destination              |
+
+### Aggressive Path (Red)
+
+Prioritizes combat rewards and unknown encounters:
+
+| Room Type     | Score | Reason                         |
+|---------------|-------|--------------------------------|
+| **Rest Site** | +1    | Heal and upgrade cards         |
+| **Treasure**  | +1    | Free relic                     |
+| **Shop**      | +1    | Buy cards, relics, and potions |
+| **Monster**   | +2    | Gold and card rewards          |
+| **Elite**     | +3    | Relics and better rewards      |
+| **Unknown**   | +2    | Potential for combat           |
+| **Boss**      | 0     | Final destination              |
+
+When both paths share an edge, it appears in gold.
+
+### Expert Scoring (Adjacency Bonuses)
+
+Each path can optionally enable **Expert Mode** to apply positional bonuses on top of base weights. Expert Mode is a global toggle that affects all paths. These reward specific node sequences:
+
+| Pattern | Description | Default |
+|---------|-------------|---------|
+| **Rest -> Elite** | Rest site directly before an elite encounter | 0 |
+| **Elite -> Rest** | Elite encounter directly before a rest site | 0 |
+| **Treasure -> Elite** | Treasure room directly before an elite encounter | 0 |
+| **Rest -> Any -> Elite** | Rest site two steps before an elite (one node in between) | 0 |
+| **Elite -> Any -> Rest** | Elite encounter two steps before a rest site | 0 |
+| **0 Shops to Boss** | Route to Boss contains zero shops (excl. current point) | 0 |
+| **1 Shop to Boss** | Route to Boss contains exactly one shop (excl. current point) | 0 |
+| **2 Shops to Boss** | Route to Boss contains exactly two shops (excl. current point) | 0 |
+
+All bonuses default to 0 (disabled). When Expert Mode is off, scoring is identical to before. The toggle and bonuses are configurable via ModConfig GUI or JSON.
+
+## Configuration
+
+### GUI Settings (Recommended)
+
+RouteSuggest optionally integrates with [**ModConfig**](https://github.com/xhyrzldf/ModConfig-STS2). When ModConfig is installed, RouteSuggest appears in the game's **Settings > Mods** menu. If ModConfig is not installed, the mod still works normally, but you'll need to edit the JSON configuration file manually (see below).
+
+With ModConfig GUI, you can:
+
+- **General Settings**:
+  - **Highlight Type**: Choose to highlight one optimal path or all paths with optimal score
+    - **One**: Pick one path to highlight from among optimal paths
+    - **All**: Highlight all paths tied for the best score
+  - **Enable Expert Scoring**: Global toggle to enable adjacency bonuses (affects all paths)
+- **Configure each path**:
+  - **Enabled**: Toggle to enable/disable this path (disabled paths are not calculated or shown)
+  - **Name**: Identifier for the path
+  - **Color**: Enter hex color code (e.g., `#FFD700` for gold, `#FF0000` for red)
+  - **Priority**: Slider to set rendering priority (higher = renders on top when paths overlap)
+  - **Scoring Weights**: Sliders for each room type
+    - Positive = prefer this room type
+    - Negative = avoid this room type
+    - Zero = neutral
+  - **Expert Scoring**: sliders for positional patterns (Rest -> Elite, etc.) and shop count bonuses
+- **Add New Path**: Slider to add a new path (slide to 1)
+- **Remove Path**: Each path has a slider to remove it (0=keep, 1=remove)
+- **Reset to Defaults**: Slider to reset all paths to default configuration
+- **Changes are saved automatically** to the config file location (see below for details)
+
+### Manual JSON Configuration
+
+Alternatively, you can customize the path types by manually editing `RouteSuggestConfig.json`:
+
+- **Existing users**: If you already have a config file at `mods/RouteSuggestConfig.json`, it will continue to be used (no migration needed)
+- **New users**: The config will be saved alongside `RouteSuggest.dll` (found recursively in the mods folder). If the DLL cannot be found, it falls back to `mods/RouteSuggestConfig.json`
+- **Note**: Config is saved to the same location where it was read from. The mod will not automatically migrate the config file to a different location.
+
+```json
+{
+  "schema_version": 5,
+  "highlight_type": "One",
+  "expert_mode": false,
+  "path_configs": [
+    {
+      "name": "Safe",
+      "color": "#FFD700",
+      "priority": 100,
+      "enabled": true,
+      "rest_before_elite_bonus": 0,
+      "elite_before_rest_bonus": 0,
+      "treasure_before_elite_bonus": 0,
+      "rest_two_before_elite_bonus": 0,
+      "elite_two_before_rest_bonus": 0,
+      "zero_shops_bonus": 0,
+      "one_shop_bonus": 0,
+      "two_shops_bonus": 0,
+      "scoring_weights": {
+        "RestSite": 1,
+        "Treasure": 1,
+        "Shop": 1,
+        "Monster": -1,
+        "Elite": -2
+      }
+    },
+    {
+      "name": "Aggressive",
+      "color": "#FF0000",
+      "priority": 50,
+      "enabled": true,
+      "rest_before_elite_bonus": 0,
+      "elite_before_rest_bonus": 0,
+      "treasure_before_elite_bonus": 0,
+      "rest_two_before_elite_bonus": 0,
+      "elite_two_before_rest_bonus": 0,
+      "zero_shops_bonus": 0,
+      "one_shop_bonus": 0,
+      "two_shops_bonus": 0,
+      "scoring_weights": {
+        "RestSite": 1,
+        "Treasure": 1,
+        "Shop": 1,
+        "Monster": 1,
+        "Elite": 2,
+        "Unknown": 1
+      }
+    }
+  ]
+}
+```
+
+- **schema_version**: Config file format version (5 is the current version)
+- **highlight_type**: "One" (pick one optimal path) or "All" (highlight all paths with optimal score)
+- **expert_mode**: Set to `true` to enable adjacency bonuses (affects all path configs)
+- **name**: Identifier for the path (e.g., "Safe", "Aggressive")
+- **enabled**: Set to `false` to disable a path (disabled paths are not calculated or shown)
+- **color**: Hex color code (e.g., `#FFD700` for gold, `#FF0000` for red)
+- **priority**: Higher values render on top when paths overlap
+- **scoring_weights**: Integer values for each room type (positive = preferred, negative = avoid)
+- **rest_before_elite_bonus**: Bonus when Rest is directly followed by Elite
+- **elite_before_rest_bonus**: Bonus when Elite is directly followed by Rest
+- **treasure_before_elite_bonus**: Bonus when Treasure is directly followed by Elite
+- **rest_two_before_elite_bonus**: Bonus when Rest is followed by Elite with one node in between
+- **elite_two_before_rest_bonus**: Bonus when Elite is followed by Rest with one node in between
+- **zero_shops_bonus**: Bonus when route to Boss has zero shops (excl. current point)
+- **one_shop_bonus**: Bonus when route to Boss has exactly one shop (excl. current point)
+- **two_shops_bonus**: Bonus when route to Boss has exactly two shops (excl. current point)
+
+Available room types: `RestSite`, `Treasure`, `Shop`, `Monster`, `Elite`, `Unknown`, `Boss`
+
+If the config file is missing or invalid, default path configs are used.
+
+### Community Configurations
+
+Users have shared their custom configurations on the [Nexus Mods posts page](https://www.nexusmods.com/slaythespire2/mods/54?tab=posts). Check them out for inspiration or to find configs that match your playstyle.
+
+## Changelog
+
+### v1.13.0
+
+- Improved detection of ModConfig
+
+### v1.12.0
+
+- Added RouteSuggestConfig.json path fallback when RouteSuggest.dll is missing
+- Published on Steam Workshop
+- Tested on game v0.107.1
+
+### v1.11.0
+
+- Fixed configuration not saved correctly bug, thanks CheezyBallz
+
+### v1.10.0
+
+- Added shop count bonuses to expert scoring mode (schema version 5)
+  - 3 new bonus sliders: 0 Shops to Boss, 1 Shop to Boss, 2 Shops to Boss
+  - Bonuses apply based on the number of shops on the route to Boss, excluding the current map point
+  - Available in both ModConfig GUI and JSON config
+  - All bonuses default to 0
+
+### v1.9.0
+
+- Tested on game beta v0.99.1 and v0.102.0
+- Added expert scoring mode with adjacency bonuses (schema version 4)
+  - Global toggle to enable expert scoring (affects all paths)
+  - 5 adjacency bonus sliders: Rest->Elite, Elite->Rest, Treasure->Elite, Rest->Any->Elite, Elite->Any->Rest
+  - Sliders hidden when expert mode is disabled
+  - Available in both ModConfig GUI and JSON config
+  - All bonuses default to 0, no impact when expert mode is off
+- Now the mod integrates with newly added Button/ColorPicker controls introduced in ModConfig v0.2.1, and it will use them if available, and fallback for older ModConfig versions
+
+### v1.8.0
+
+- Improved ModConfig UI: changed sliders to toggles for easier configuration
+- Added enable/disable option for each path configuration
+  - Disabled paths are not calculated or shown on the map
+  - Available in both ModConfig GUI and JSON config
+- Tested on game beta v0.100.0
+
+### v1.7.0
+
+- Set `affects_gameplay` to false since this mod is visual-only and does not impact gameplay
+
+### v1.6.0
+
+- Improved config file path resolution
+  - Based on user feedback: when there are many mods in the folder, having the config file at the root level becomes messy
+  - If `mods/RouteSuggestConfig.json` exists, continue using it (no migration needed)
+  - Otherwise, find `RouteSuggest.dll` recursively and save config alongside it
+  - Fallback to `mods/RouteSuggestConfig.json` if DLL not found
+  - Config is saved to the same location where it was read from (no automatic migration)
+
+### v1.5.0
+
+- Add HighlightType option to control how many paths to highlight
+  - **One**: Pick one path from among optimal paths
+  - **All**: Highlight all paths with the optimal best score
+  - Available in both ModConfig GUI and JSON config
+
+### v1.4.0
+
+- Added GUI Settings integration with ModConfig for in-game path configuration
+  - Configure name, color (hex input), priority, and scoring weights via GUI
+  - Add/remove custom path types
+  - Changes saved to JSON automatically
+  - Use slider instead of button for now
+  - I18n support for English and Simplified Chinese
+- Tested on game beta v0.99.1
+
+### v1.3.0
+
+- Tuned the default weights for safe/aggressive paths
+- Added configurable paths via `mods/RouteSuggestConfig.json`
+- Path configs can be customized with custom colors, priorities, and scoring weights
+- Falls back to defaults if config file is missing or invalid
+
+### v1.2.0
+
+- Fixed path highlighting when entering a new act
+
+### v1.1.0
+
+- Added dual path mode: safe path (gold) and aggressive path (red)
+- Safe path minimizes combat encounters
+- Aggressive path prioritizes Elite (+2), Monster (+1), and Unknown (+1) rooms
+- Overlapping edges shown in gold
+
+### v1.0.0
+
+- Initial release
+- Support for game versions v0.98.3 and v0.99

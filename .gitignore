@@ -1,0 +1,12 @@
+artifacts/
+dist/
+bin/
+obj/
+__pycache__/
+*.pyc
+.vs/
+.idea/
+.env
+.env.*
+RouteSuggestPlusConfig.json
+release-notes/

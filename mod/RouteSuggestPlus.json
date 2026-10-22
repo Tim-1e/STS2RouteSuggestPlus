@@ -1,0 +1,11 @@
+{
+  "id": "RouteSuggestPlus",
+  "name": "路线推荐·精修 · RouteSuggest Plus",
+  "author": "规范有勇气（基于 Jiajie Chen 的 RouteSuggest，MIT）",
+  "description": "地图路线推荐：金色流光的精修路线按当前血量、金币、删卡价、药水、层数与近期战力实时规划；保留原版固定权重路线。多线并排不覆盖，右键固定节点。F7 或地图右下角按钮打开设置。",
+  "version": "0.1.0",
+  "has_dll": true,
+  "has_pck": false,
+  "affects_gameplay": false,
+  "min_game_version": "0.111.0"
+}

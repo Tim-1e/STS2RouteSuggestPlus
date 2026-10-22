@@ -100,13 +100,14 @@ public sealed partial class FlightChip : PanelContainer
     Label _left = null!;
     public Dragger Drag { get; private set; } = null!;
     Action<int?> _choose = _ => { };
+    Action _reset = () => { };
     bool _syncing;
 
     public IReadOnlyList<(Button button, int? value)> Buttons => _buttons;
 
-    public static FlightChip Create(Node? topBar, Action<int?> choose, Action<Vector2> moved)
+    public static FlightChip Create(Node? topBar, Action<int?> choose, Action<Vector2> moved, Action reset)
     {
-        var chip = new FlightChip { Name = NodeName, _choose = choose, MouseFilter = MouseFilterEnum.Stop };
+        var chip = new FlightChip { Name = NodeName, _choose = choose, _reset = reset, MouseFilter = MouseFilterEnum.Stop };
         chip.Build(topBar, moved);
         return chip;
     }
@@ -115,6 +116,7 @@ public sealed partial class FlightChip : PanelContainer
     {
         Drag = new Dragger(this, moved);
         Drag.Watch(this);
+        WatchReset(this);
         var (font, outline, outlineColor) = NativeText(topBar);
         var plate = new StyleBoxFlat
         {
@@ -125,7 +127,7 @@ public sealed partial class FlightChip : PanelContainer
         plate.SetBorderWidthAll(3);
         plate.SetCornerRadiusAll(12);
         AddThemeStyleboxOverride("panel", plate);
-        TooltipText = "飞鞋：本层一共飞几次（含已飞）。自动 = 按本层收益与后续期望决定。按住可拖动。";
+        TooltipText = "飞鞋：本层一共飞几次（含已飞）。自动 = 按本层收益与后续期望决定。按住可拖动，右键回到默认位置。";
 
         var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", 2);
@@ -162,9 +164,30 @@ public sealed partial class FlightChip : PanelContainer
                 _choose(value);
             };
             Drag.Watch(b);
+            WatchReset(b);
             row.AddChild(b);
             _buttons.Add((b, value));
         }
+    }
+
+    /// <summary>Right-click anywhere on the chip puts it back at its default spot.</summary>
+    void WatchReset(Control c) => c.GuiInput += e =>
+    {
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
+        {
+            _reset();
+            c.AcceptEvent();
+        }
+    };
+
+    bool _mapOpen;
+
+    /// <summary>The chip sits on the global UI, so it is only shown while the map is open.</summary>
+    public void SetMapOpen(bool open)
+    {
+        if (_mapOpen == open) return;
+        _mapOpen = open;
+        Visible = _mapOpen && _leftNow > 0;
     }
 
     int _leftNow, _usedNow;
@@ -174,7 +197,7 @@ public sealed partial class FlightChip : PanelContainer
     public void SetFlights(int left, int usedThisAct, int? choice)
     {
         (_leftNow, _usedNow, _choiceNow) = (left, usedThisAct, choice);
-        Visible = left > 0;
+        Visible = _mapOpen && left > 0;
         Sync();
     }
 

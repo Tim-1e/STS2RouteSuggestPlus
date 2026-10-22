@@ -62,10 +62,13 @@ public static class FlightPlanner
     /// <summary>
     /// Best route using at most j flights, for j = 0..maxFlights (index j). Pins (row → node) must be visited.
     /// Entries can be null when no route exists (e.g. pins that cannot be joined even by flying).
+    /// With <paramref name="exact"/> (the player picked a number) flights are free and index j holds the best route
+    /// using exactly j flights.
     /// </summary>
     public static FlightRoute?[] Plan(MapGraph g, int start, int maxFlights, PlanContext ctx, PlanParams p,
-        IReadOnlyDictionary<int, int>? pinsByRow = null)
+        IReadOnlyDictionary<int, int>? pinsByRow = null, bool exact = false)
     {
+        float cost = exact ? 0f : p.FlightCost;
         maxFlights = Math.Clamp(maxFlights, 0, 3);
         var frontier = new List<Entry> { new() { State = Planner.Begin(g.Nodes[start].Kind, ctx, p), Node = start } };
         var finished = new List<Entry>();
@@ -76,11 +79,11 @@ public static class FlightPlanner
             {
                 var node = g.Nodes[e.Node];
                 if (node.Children.Length == 0) { finished.Add(e); continue; }
-                foreach (int c in node.Children) Offer(next, Extend(g, e, c, false, ctx, p), pinsByRow, g);
+                foreach (int c in node.Children) Offer(next, Extend(g, e, c, false, ctx, p, cost), pinsByRow, g);
                 if (e.Used >= maxFlights) continue;
                 foreach (int m in g.Row(node.Row + 1))
                     if (Array.IndexOf(node.Children, m) < 0 && g.Nodes[m].Kind != NodeKind.Boss)
-                        Offer(next, Extend(g, e, m, true, ctx, p), pinsByRow, g);
+                        Offer(next, Extend(g, e, m, true, ctx, p, cost), pinsByRow, g);
             }
             frontier = next.Values.SelectMany(v => v).ToList();
         }
@@ -88,18 +91,18 @@ public static class FlightPlanner
         var best = new FlightRoute?[maxFlights + 1];
         for (int j = 0; j <= maxFlights; j++)
         {
-            var pick = finished.Where(e => e.Used <= j).OrderByDescending(e => e.State.Net).ThenBy(e => e.Used).FirstOrDefault();
+            var pick = finished.Where(e => exact ? e.Used == j : e.Used <= j).OrderByDescending(e => e.State.Net).ThenBy(e => e.Used).FirstOrDefault();
             if (pick is not null) best[j] = ToRoute(g, pick);
         }
         return best;
     }
 
-    static Entry Extend(MapGraph g, Entry e, int target, bool jump, PlanContext ctx, PlanParams p)
+    static Entry Extend(MapGraph g, Entry e, int target, bool jump, PlanContext ctx, PlanParams p, float cost)
     {
         var n = g.Nodes[target];
         return new Entry
         {
-            State = jump ? Planner.Charge(Planner.Advance(e.State, n.Kind, n.NoShopRoll, ctx, p), p.FlightCost)
+            State = jump ? Planner.Charge(Planner.Advance(e.State, n.Kind, n.NoShopRoll, ctx, p), cost)
                          : Planner.Advance(e.State, n.Kind, n.NoShopRoll, ctx, p),
             Node = target,
             Used = e.Used + (jump ? 1 : 0),

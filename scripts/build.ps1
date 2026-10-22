@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 $taskSource = Join-Path $taskRoot 'mod'
 $taskDist = Join-Path $taskRoot 'dist/RouteSuggestPlus'
+& (Join-Path $PSScriptRoot 'build-cover.ps1') -GameDir $GameDir
 & (Join-Path $taskRoot 'scripts/compile.ps1') -Source (Get-ChildItem -LiteralPath $taskSource -Filter '*.cs').FullName -Output (Join-Path $taskDist 'RouteSuggestPlus.dll') -GameDir $GameDir
 Copy-Item -LiteralPath (Join-Path $taskSource 'RouteSuggestPlus.json') -Destination $taskDist -Force
 Copy-Item -LiteralPath (Join-Path $taskRoot 'upstream/LICENSE') -Destination (Join-Path $taskDist 'LICENSE') -Force
@@ -23,7 +24,7 @@ if ($Install) {
         Copy-Item -LiteralPath $taskTarget -Destination $taskBackup -Recurse
     }
     [void](New-Item -ItemType Directory -Path $taskTarget -Force)
-    foreach ($taskFile in @('RouteSuggestPlus.dll', 'RouteSuggestPlus.json', 'LICENSE', 'README.md', 'preview.png')) {
+    foreach ($taskFile in @('RouteSuggestPlus.dll', 'RouteSuggestPlus.pck', 'RouteSuggestPlus.json', 'LICENSE', 'README.md', 'preview.png')) {
         $taskFilePath = Join-Path $taskDist $taskFile
         if (Test-Path -LiteralPath $taskFilePath) { Copy-Item -LiteralPath $taskFilePath -Destination (Join-Path $taskTarget $taskFile) -Force }
     }

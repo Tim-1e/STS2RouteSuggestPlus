@@ -161,6 +161,9 @@ public static class PlannerTests
         Check("one flight reaches the elite column", fl[1]!.Jumps == 1 && fl[1]!.Nodes[1] == e1 && fl[1]!.Plan.Score > fl[0]!.Plan.Score,
               $"{string.Join(">", fl[1]!.Nodes)} {fl[1]!.Plan.Score:0.00} vs {fl[0]!.Plan.Score:0.00}");
         Check("extra flights unused when they do not help", fl[3]!.Jumps == 1);
+        var forced = FlightPlanner.Plan(g, s0, 2, Ctx(), p, null, exact: true);
+        Check("a chosen count is flown exactly, even when it adds little", forced[2] is { Jumps: 2 } && forced[1] is { Jumps: 1 } && forced[0] is { Jumps: 0 },
+              forced[2] is null ? "none" : string.Join(">", forced[2]!.Nodes));
         var pinned = FlightPlanner.Plan(g, s0, 3, Ctx(), p, new Dictionary<int, int> { [2] = m2 });
         Check("flight routes respect pins", pinned[3]!.Nodes[2] == m2, string.Join(">", pinned[3]!.Nodes));
         var keep = new PlanParams { FlightReserve = new float[] { 0, 0, 0, 0, 0, 50, 60, 90, 0, 0, 0, 0 } };

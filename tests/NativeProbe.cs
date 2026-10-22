@@ -257,7 +257,13 @@ public static class RouteProbe
             Check((c.Results.First(r => r.Config.Dynamic).Jumped?.Count(j => j) ?? 0) == 0, "choosing 0 flights walks only");
             c.ChooseFlights(1);
             await Frames(2);
-            Check((c.Results.First(r => r.Config.Dynamic).Jumped?.Count(j => j) ?? 0) <= 1, "choosing 1 flight uses at most one");
+            Check((c.Results.First(r => r.Config.Dynamic).Jumped?.Count(j => j) ?? 0) == 1, "choosing 1 flight flies once");
+            c.ChooseFlights(3);
+            await Frames(2);
+            int three = c.Results.First(r => r.Config.Dynamic).Jumped?.Count(j => j) ?? 0;
+            Check(three == 3, "choosing 3 flights flies three times: " + three);
+            c.ChooseFlights(1);
+            await Frames(2);
             var chip = c.LiveFlightChip!;
             var flightButtons = chip.Buttons.Select(x => x.button).ToList();
             Check(chip.Visible && flightButtons.Count == 5 && flightButtons[2].ButtonPressed && !flightButtons.Any(b => b.Disabled),
@@ -270,12 +276,17 @@ public static class RouteProbe
             var chipFrom = flightButtons[3].GetGlobalRect().GetCenter();
             var chipBefore = chip.Position;
             flightButtons[3].EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, GlobalPosition = chipFrom, Position = chipFrom });
-            flightButtons[3].EmitSignal(Control.SignalName.GuiInput, new InputEventMouseMotion { GlobalPosition = chipFrom + new Vector2(200, -300), Position = chipFrom });
-            flightButtons[3].EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, GlobalPosition = chipFrom + new Vector2(200, -300), Position = chipFrom });
+            flightButtons[3].EmitSignal(Control.SignalName.GuiInput, new InputEventMouseMotion { GlobalPosition = chipFrom + new Vector2(-300, 0), Position = chipFrom });
+            flightButtons[3].EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, GlobalPosition = chipFrom + new Vector2(-300, 0), Position = chipFrom });
             flightButtons[3].EmitSignal(BaseButton.SignalName.Pressed); // the release after a drag is not a choice
             await Frames(2);
-            Check((chip.Position - (chipBefore + new Vector2(200, -300))).Length() < 2f && Math.Abs(c.Settings.Display.FlightX - chip.Position.X) < 0.5f && c.FlightChoice == 0,
+            Check((chip.Position - (chipBefore + new Vector2(-300, 0))).Length() < 2f && Math.Abs(c.Settings.Display.FlightX - chip.Position.X) < 0.5f && c.FlightChoice == 0,
                   $"flight chip dragged {chipBefore} -> {chip.Position} without choosing, saved ({c.Settings.Display.FlightX:0},{c.Settings.Display.FlightY:0})");
+            Check(chip.GetParent().GetType().Name == "NTopBar",
+                  "flight chip lives in the top bar: " + chip.GetParent().GetType().Name);
+            chip.EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Right, Pressed = true, GlobalPosition = chip.GetGlobalRect().GetCenter() });
+            await Frames(2);
+            Check((chip.Position - chipBefore).Length() < 2f && c.Settings.Display.FlightX < 0, $"right-click puts the chip back: {chip.Position}");
             c.ChooseFlights(null);
             await Frames(2);
             c.Settings.Plan.FlightReserve = savedReserve;

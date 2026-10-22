@@ -84,7 +84,7 @@ public sealed class DisplayOptions
     /// <summary>Map button position after the player drags it; negative means the default bottom-right corner.</summary>
     public float ButtonX { get; set; } = -1f;
     public float ButtonY { get; set; } = -1f;
-    /// <summary>Winged Boots chip position on the map; negative means the default bottom-left spot.</summary>
+    /// <summary>Winged Boots chip position on the map; negative means the default spot in the top bar.</summary>
     public float FlightX { get; set; } = -1f;
     public float FlightY { get; set; } = -1f;
     /// <summary>Godot key name for the settings panel.</summary>

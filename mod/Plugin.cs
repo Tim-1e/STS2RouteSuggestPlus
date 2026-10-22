@@ -118,11 +118,12 @@ public sealed class RouteController
     {
         if (_panel is not null && GodotObject.IsInstanceValid(_panel)) _panel.QueueFree();
         var panel = new SettingsPanel { MouseFilter = Control.MouseFilterEnum.Ignore };
-        panel.Initialize(Settings, OnSettingsChanged, ClearPins);
+        panel.Initialize(Settings, OnSettingsChanged, ClearPins, ResetPositions);
         // The global UI is rebuilt when returning to the main menu; never keep a freed panel around.
         panel.TreeExiting += () => { if (ReferenceEquals(_panel, panel)) _panel = null; };
         root.AddChild(panel);
         _topBar = root.TopBar;
+        AttachFlightChip(root, panel);
         panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         _panel = panel;
         if (_tree is null)
@@ -268,6 +269,11 @@ public sealed class RouteController
         var screen = NMapScreen.Instance;
         bool open = screen is not null && GodotObject.IsInstanceValid(screen) && screen.IsOpen;
         if (open && !_wasOpen) Recompute(); // HP, gold and potions may have changed since the last room event
+        if (LiveFlightChip is { } chip)
+        {
+            if (open && !_chipPlaced) PlaceFlightChip(false);
+            chip.SetMapOpen(open);
+        }
         if (open && screen!.IsTraveling) { _wasOpen = open; return; } // redraw once travel has finished
         if (open && (!_wasOpen || _dirty))
         {
@@ -287,7 +293,6 @@ public sealed class RouteController
 
     void EnsureMapButton(NMapScreen screen)
     {
-        EnsureFlightChip(screen);
         if (_mapButton is not null && GodotObject.IsInstanceValid(_mapButton) && _mapButton.GetParent() == screen) return;
         var button = SettingsPanel.MakeButton("◆ 路线设置");
         _mapButton = button;
@@ -308,10 +313,10 @@ public sealed class RouteController
         };
         screen.AddChild(button);
         button.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomRight);
-        button.OffsetLeft = -190;
-        button.OffsetTop = -64;
-        button.OffsetRight = -24;
-        button.OffsetBottom = -24;
+        button.OffsetLeft = -226;
+        button.OffsetTop = -164;
+        button.OffsetRight = -60;
+        button.OffsetBottom = -124;
         if (Settings.Display.ButtonX >= 0 && Settings.Display.ButtonY >= 0)
         {
             Dragger.Free(button);
@@ -321,22 +326,76 @@ public sealed class RouteController
 
     public FlightChip? LiveFlightChip => _flightChip is not null && GodotObject.IsInstanceValid(_flightChip) ? _flightChip : null;
 
-    /// <summary>The Winged Boots chip lives on the map screen: bottom-left, between the back arrow and the drawing tools, unless moved.</summary>
-    void EnsureFlightChip(NMapScreen screen)
+    /// <summary>
+    /// The Winged Boots chip is a child of the top bar, so the bar never hides it and game popups that cover the bar
+    /// cover the chip too (falls back to the global UI under the settings panel if the bar is a layout container).
+    /// Its default spot is the bar's empty middle; it is shown only while the map is open.
+    /// </summary>
+    void AttachFlightChip(NGlobalUi root, Control panel)
     {
-        if (LiveFlightChip is { } live && live.GetParent() == screen) return;
+        if (LiveFlightChip is { } old) old.QueueFree();
         var chip = FlightChip.Create(_topBar, ChooseFlights, at =>
         {
             Settings.Display.FlightX = at.X;
             Settings.Display.FlightY = at.Y;
             SaveQuietly();
-        });
+        }, ResetFlightChip);
         _flightChip = chip;
-        screen.AddChild(chip);
-        chip.ResetSize();
-        bool saved = Settings.Display.FlightX >= 0 && Settings.Display.FlightY >= 0;
-        chip.Position = Dragger.Clamp(chip, saved ? new Vector2(Settings.Display.FlightX, Settings.Display.FlightY) : new Vector2(40, screen.Size.Y - 200));
+        _chipPlaced = false;
+        if (_topBar is Control bar && bar is not Container) bar.AddChild(chip);
+        else
+        {
+            root.AddChild(chip);
+            root.MoveChild(chip, panel.GetIndex()); // below the panel, above the top bar
+        }
         SyncFlightChip(LastContext);
+    }
+
+    bool _chipPlaced;
+
+    /// <summary>Places the chip once the UI has its real size (first time the map opens).</summary>
+    void PlaceFlightChip(bool reset)
+    {
+        if (LiveFlightChip is not { } chip) return;
+        chip.ResetSize();
+        bool saved = !reset && Settings.Display.FlightX >= 0 && Settings.Display.FlightY >= 0;
+        chip.Position = Dragger.Clamp(chip, saved ? new Vector2(Settings.Display.FlightX, Settings.Display.FlightY) : DefaultChipSpot(chip));
+        _chipPlaced = true;
+    }
+
+    Vector2 DefaultChipSpot(Control chip)
+    {
+        var parent = chip.GetParent() as Control;
+        var view = parent is not null && parent.Size.X > 0 ? parent.Size : chip.GetViewportRect().Size;
+        // The top bar node spans the screen; line up with its gold counter instead (fallback: a typical bar height).
+        float centerY = 48f;
+        if (_topBar is Node bar && GodotObject.IsInstanceValid(bar))
+            foreach (var n in bar.FindChildren("*", "", true, false))
+                if (n.GetType().Name is "NTopBarGold" or "NTopBarHp" && n is Control c && c.Size.Y > 0)
+                {
+                    centerY = c.GetGlobalRect().GetCenter().Y - (parent?.GetGlobalRect().Position.Y ?? 0f);
+                    break;
+                }
+        // Middle of the bar, between the floor/boss icons and the run timer.
+        return new Vector2(view.X * 0.553f, Math.Max(0f, centerY - chip.Size.Y * 0.5f));
+    }
+
+    public void ResetFlightChip()
+    {
+        Settings.Display.FlightX = Settings.Display.FlightY = -1f;
+        SaveQuietly();
+        PlaceFlightChip(true);
+    }
+
+    /// <summary>Settings panel: put the button, panel and chip back where they start.</summary>
+    public void ResetPositions()
+    {
+        Settings.Display.ButtonX = Settings.Display.ButtonY = -1f;
+        Settings.Display.PanelX = Settings.Display.PanelY = -1f;
+        if (_mapButton is not null && GodotObject.IsInstanceValid(_mapButton)) { _mapButton.QueueFree(); _mapButton = null; }
+        if (NMapScreen.Instance is { } screen && GodotObject.IsInstanceValid(screen) && screen.IsOpen) EnsureMapButton(screen);
+        LivePanel?.Replace();
+        ResetFlightChip();
     }
 
     void SyncFlightChip(PlanContext? ctx)

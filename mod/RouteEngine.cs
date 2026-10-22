@@ -203,14 +203,14 @@ public static class RouteEngine
             if (pt is not null && ids.TryGetValue(pt, out int id)) pinRows[pin.row] = id;
         }
         int limit = allowedNow is int a ? Math.Clamp(a, 0, ctx.FlightCharges) : ctx.FlightCharges;
-        var best = FlightPlanner.Plan(graph, from, limit, ctx, s.Plan, pinRows);
+        var best = FlightPlanner.Plan(graph, from, limit, ctx, s.Plan, pinRows, exact: allowedNow is not null);
         FlightRoute? route;
         float reserve;
         if (allowedNow is null) (route, reserve) = FlightPlanner.Choose(best, ctx.ActIndex, ctx.FlightCharges, s.Plan);
         else
         {
-            // The player chose: fly at most `limit` times here (fewer when flying does not help).
-            route = best[limit] ?? best.LastOrDefault(r => r is not null);
+            // The player chose: fly exactly `limit` times here, or as many as the map allows.
+            route = best.LastOrDefault(r => r is not null);
             reserve = route is null ? 0f : FlightPlanner.Reserve(ctx.ActIndex, ctx.FlightCharges - route.Jumps, s.Plan);
         }
         if (route is null) return;

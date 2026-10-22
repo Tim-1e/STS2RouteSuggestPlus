@@ -284,7 +284,7 @@ public sealed class MapOverlay
     /// <summary>Shows a short message at the top of the map that fades out by itself.</summary>
     public static void Toast(NMapScreen screen, string text)
     {
-        var box = new PanelContainer { Name = "RouteSuggestPlusToast", MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 50 };
+        var box = new PanelContainer { Name = "RouteSuggestPlusToast", MouseFilter = Control.MouseFilterEnum.Ignore };
         var style = new StyleBoxFlat { BgColor = new Color(0.065f, 0.072f, 0.10f, 0.92f), BorderColor = new Color(0.96f, 0.78f, 0.42f, 0.9f), AntiAliasing = true };
         style.SetBorderWidthAll(2);
         style.SetCornerRadiusAll(10);
@@ -397,7 +397,7 @@ public sealed class MapOverlay
         {
             if (!points.Contains(coord) || points[coord] is not NMapPoint point || !GodotObject.IsInstanceValid(point)) continue;
             if (!_pinBorn.ContainsKey(coord)) _pinBorn[coord] = _now;
-            var holder = new Control { Name = "RouteSuggestPlusPin", MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 5 };
+            var holder = new Control { Name = "RouteSuggestPlusPin", MouseFilter = Control.MouseFilterEnum.Ignore }; // no ZIndex: game popups must cover it
             point.AddChild(holder);
             holder.Position = point.Size * 0.5f;
             var rng = new RandomNumberGenerator { Seed = (ulong)(coord.row * 97 + coord.col * 13 + 7) };

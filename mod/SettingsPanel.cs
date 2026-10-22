@@ -26,6 +26,7 @@ public partial class SettingsPanel : Control
     RouteSettings _settings = new();
     Action _changed = () => { };
     Action _clearPins = () => { };
+    Action _resetPositions = () => { };
     bool _built, _open, _syncing;
     PanelContainer _panel = null!;
     ScrollContainer _scroll = null!;
@@ -42,8 +43,9 @@ public partial class SettingsPanel : Control
         Ready += OnReady;
     }
 
-    public void Initialize(RouteSettings settings, Action changed, Action clearPins)
+    public void Initialize(RouteSettings settings, Action changed, Action clearPins, Action? resetPositions = null)
     {
+        _resetPositions = resetPositions ?? (() => { });
         _settings = settings;
         _changed = changed;
         _clearPins = clearPins;
@@ -185,6 +187,10 @@ public partial class SettingsPanel : Control
         var clearPins = MakeButton("清空固定节点");
         clearPins.Pressed += () => _clearPins();
         pinRow.AddChild(clearPins);
+        var resetSpots = MakeButton("恢复默认位置");
+        resetSpots.TooltipText = "路线设置按钮、设置面板、飞鞋小条回到默认位置";
+        resetSpots.Pressed += () => _resetPositions();
+        pinRow.AddChild(resetSpots);
         c.AddChild(Indent(pinRow));
 
         c.AddChild(MakeSection("当前评估"));
@@ -198,6 +204,9 @@ public partial class SettingsPanel : Control
         footer.AutowrapMode = TextServer.AutowrapMode.Off;
         outer.AddChild(footer);
     }
+
+    /// <summary>Re-applies the saved (or default) position, e.g. after a reset.</summary>
+    public void Replace() => Place();
 
     void Place()
     {
